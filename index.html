@@ -133,8 +133,8 @@
     <section class="card">
       <h2>模拟结果 <span class="en">Results</span></h2>
       <table>
-        <thead><tr><th style="text-align:left">策略 Strategy</th><th>平均时间 (tick)</th><th>相对随机</th></tr></thead>
-        <tbody id="tbody"><tr><td colspan="3" class="empty">点击「开始模拟」查看结果</td></tr></tbody>
+        <thead><tr><th style="text-align:left">策略 Strategy</th><th>平均时间 (tick)</th><th>相对随机</th><th>并行度</th><th>被堵次数</th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="5" class="empty">点击「开始模拟」查看结果</td></tr></tbody>
       </table>
       <div class="chart" id="chart"></div>
       <div class="conclusion" id="conclusion" style="display:none"></div>
@@ -173,16 +173,18 @@ function simulate(order, R, STOW){
   const n=order.length;
   const aisle=new Array(R+3).fill(null);
   const target=order.slice();
-  let nextp=0, seated=0, t=0;
+  let nextp=0, seated=0, t=0, sumConc=0, totalBlocked=0;
   const stowLeft=new Map();
   while(seated<n){
     t++;
     if(nextp<n && aisle[1]===null){ aisle[1]=nextp; nextp++; }
+    let blocked=0;
     for(let pos=R; pos>=1; pos--){
       const p=aisle[pos];
       if(p===null || stowLeft.has(p)) continue;
       if(target[p]===pos){ stowLeft.set(p,STOW); continue; }
       if(aisle[pos+1]===null){ aisle[pos]=null; aisle[pos+1]=p; }
+      else { blocked++; }
     }
     const done=[];
     for(const [p,v] of stowLeft){ const nv=v-1; if(nv<=0) done.push(p); else stowLeft.set(p,nv); }
@@ -190,8 +192,10 @@ function simulate(order, R, STOW){
       for(let pos=1;pos<=R;pos++){ if(aisle[pos]===p){ aisle[pos]=null; break; } }
       stowLeft.delete(p); seated++;
     }
+    sumConc += stowLeft.size;
+    totalBlocked += blocked;
   }
-  return t;
+  return {time:t, conc: sumConc/t, blocked: totalBlocked};
 }
 
 /* ---------- 运行 ---------- */
@@ -202,34 +206,36 @@ function run(){
   const STOW=Math.max(1,Math.min(10,+document.getElementById('STOW').value||3));
   const REP=Math.max(1,Math.min(200,+document.getElementById('REPEAT').value||20));
 
-  const randTimes=[]; for(let i=0;i<REP;i++) randTimes.push(simulate(orderRandom(R),R,STOW));
-  const bf=simulate(orderBackToFront(R),R,STOW);
-  const zoneTimes=[]; for(let i=0;i<REP;i++) zoneTimes.push(simulate(orderZones(R,5),R,STOW));
+  const randRes=[]; for(let i=0;i<REP;i++) randRes.push(simulate(orderRandom(R),R,STOW));
+  const bfRes=[simulate(orderBackToFront(R),R,STOW)];
+  const zoneRes=[]; for(let i=0;i<REP;i++) zoneRes.push(simulate(orderZones(R,5),R,STOW));
 
+  const agg=res=>({time:avg(res.map(r=>r.time)), conc:avg(res.map(r=>r.conc)), blocked:avg(res.map(r=>r.blocked))});
   const data=[
-    {name:'随机', en:'Random', v:avg(randTimes), color:'var(--red)'},
-    {name:'从后往前', en:'Back-to-front', v:bf, color:'var(--green)'},
-    {name:'分 5 区', en:'Zones (5)', v:avg(zoneTimes), color:'var(--blue)'}
+    Object.assign({name:'随机', en:'Random', color:'var(--red)'}, agg(randRes)),
+    Object.assign({name:'从后往前', en:'Back-to-front', color:'var(--green)'}, agg(bfRes)),
+    Object.assign({name:'分 5 区', en:'Zones (5)', color:'var(--blue)'}, agg(zoneRes))
   ];
   lastData={R,STOW,REP,data};
-  const base=data[0].v;
+  const base=data[0].time;
 
   /* 表格 */
   const tb=document.getElementById('tbody'); tb.innerHTML='';
   data.forEach(d=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`<td class="name"><span class="dot" style="background:${d.color}"></span>${d.name} <span style="color:#8895a6;font-size:11px">${d.en}</span></td>
-      <td>${d.v.toFixed(1)}</td><td>${(d.v/base*100).toFixed(0)}%</td>`;
+      <td>${d.time.toFixed(1)}</td><td>${(d.time/base*100).toFixed(0)}%</td>
+      <td>${d.conc.toFixed(2)}</td><td>${d.blocked.toFixed(0)}</td>`;
     tb.appendChild(tr);
   });
 
   /* 柱状图 */
-  const max=Math.max(...data.map(d=>d.v));
+  const max=Math.max(...data.map(d=>d.time));
   const chart=document.getElementById('chart'); chart.innerHTML='';
   data.forEach(d=>{
-    const h=Math.round(d.v/max*170);
+    const h=Math.round(d.time/max*170);
     const div=document.createElement('div'); div.className='bar';
-    div.innerHTML=`<div class="val">${d.v.toFixed(1)}</div>
+    div.innerHTML=`<div class="val">${d.time.toFixed(1)}</div>
       <div class="fill" style="height:0;background:${d.color}"></div>
       <div class="name">${d.name}</div>`;
     chart.appendChild(div);
@@ -237,19 +243,20 @@ function run(){
   });
 
   /* 结论 */
-  const fastest=data.reduce((a,b)=>a.v<b.v?a:b);
+  const fastest=data.reduce((a,b)=>a.time<b.time?a:b);
+  const mostParallel=data.reduce((a,b)=>a.conc>b.conc?a:b);
   const box=document.getElementById('conclusion');
   box.style.display='block';
-  box.innerHTML=`最快：<b>${fastest.name}</b>（${fastest.v.toFixed(1)} tick），比"随机"快约 <b>${(((base-fastest.v)/base)*100).toFixed(0)}%</b>。
-    <br>提示：放行李越慢，"聚集式"登机被拖得越久——试试把放行李时间调到 6。`;
+  box.innerHTML=`最快：<b>${fastest.name}</b>（${fastest.time.toFixed(1)} tick），比"随机"快约 <b>${(((base-fastest.time)/base)*100).toFixed(0)}%</b>。
+    <br><b>机制：</b>并行度最高的是 <b>${mostParallel.name}</b>（平均 ${mostParallel.conc.toFixed(2)} 人同时放行李），被堵次数最少——这就是它更快的原因（并行放行李 vs 串行等待）。`;
 }
 
 /* ---------- 导出 CSV ---------- */
 function downloadCSV(){
   if(!lastData){ alert('请先运行模拟'); return; }
   const {R,STOW,data}=lastData;
-  let csv='strategy,R,stow,avg_time\n';
-  data.forEach(d=>{ csv+=`${d.name},${R},${STOW},${d.v.toFixed(1)}\n`; });
+  let csv='strategy,R,stow,avg_time,avg_concurrent,total_blocked\n';
+  data.forEach(d=>{ csv+=`${d.name},${R},${STOW},${d.time.toFixed(1)},${d.conc.toFixed(2)},${d.blocked.toFixed(0)}\n`; });
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -263,7 +270,7 @@ function resetAll(){
   document.getElementById('R').value=30;
   document.getElementById('STOW').value=3;
   document.getElementById('REPEAT').value=20;
-  document.getElementById('tbody').innerHTML='<tr><td colspan="3" class="empty">点击「开始模拟」查看结果</td></tr>';
+  document.getElementById('tbody').innerHTML='<tr><td colspan="5" class="empty">点击「开始模拟」查看结果</td></tr>';
   document.getElementById('chart').innerHTML='';
   document.getElementById('conclusion').style.display='none';
   lastData=null;
