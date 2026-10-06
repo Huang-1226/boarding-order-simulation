@@ -1,5 +1,7 @@
 # Boarding Order Simulation
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23186760.svg)](https://doi.org/10.5281/zenodo.23186760)
+
 A computer simulation comparing three aircraft boarding strategies — **random**, **back-to-front**, and **zoning** — and how their efficiency changes with stow time and cabin size.
 
 > Built as an independent research project (aviation operations / supply chain / mathematical modeling).
