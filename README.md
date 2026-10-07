@@ -1,6 +1,7 @@
 # Boarding Order Simulation
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23186760.svg)](https://doi.org/10.5281/zenodo.23186760)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://huang-1226.github.io/boarding-order-simulation/)
 
 A computer simulation comparing three aircraft boarding strategies — **random**, **back-to-front**, and **zoning** — and how their efficiency changes with stow time and cabin size.
 
@@ -22,7 +23,9 @@ Contrary to intuition, **random boarding is the fastest** and **back-to-front is
 
 ## Live Demo
 
-Open [`index.html`](index.html) in any browser — no installation, no internet required.
+**Online:** https://huang-1226.github.io/boarding-order-simulation/
+
+Or open [`index.html`](index.html) in any browser — no installation, no internet required.
 It shows an animated top-down cabin (four strategies side by side; passengers walk, stow, and sit down) together with an averaged statistics table; adjust rows / stow time / repeats and export the results as CSV.
 
 *(You can enable GitHub Pages in the repository settings to host it as a website.)*
