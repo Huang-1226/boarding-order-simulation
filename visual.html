@@ -64,7 +64,7 @@ function ordRandom(R,K){ const a=[]; for(let r=1;r<=R;r++) for(let k=0;k<K;k++) 
 function ordColRandom(R,K){ const a=[]; for(let k=0;k<K;k++){ const s=[]; for(let r=1;r<=R;r++) s.push(r); shuffle(s); for(const x of s) a.push(x);} return a; }
 function ordBack(R,K){ const a=[]; for(let r=R;r>=1;r--) for(let k=0;k<K;k++) a.push(r); return a; }
 function ordZones(R,K,nz){ const zs=Math.floor(R/nz),a=[]; for(let z=nz;z>=1;z--){ const lo=(z-1)*zs+1,hi=(z<nz)?z*zs:R,s=[]; for(let r=lo;r<=hi;r++) for(let k=0;k<K;k++) s.push(r); shuffle(s); for(const x of s) a.push(x);} return a; }
-function ordInterleave(R,K,stride){ const a=[]; for(let off=0;off<stride;off++){ for(let r=1+off;r<=R;r+=stride) for(let k=0;k<K;k++) a.push(r);} return a; }
+function ordInterleaveDesc(R,K,stride){ const a=[]; for(let off=0;off<stride;off++){ const rows=[]; for(let r=1+off;r<=R;r+=stride) rows.push(r); rows.reverse(); for(const r of rows) for(let k=0;k<K;k++) a.push(r);} return a; }
 
 const K = 6;
 const STRATS = [
@@ -72,7 +72,7 @@ const STRATS = [
   {name:'colRandom',       gen:(R)=>ordColRandom(R,K),      color:'#7fd1a3'},
   {name:'从后往前 Back',    gen:(R)=>ordBack(R,K),           color:'#e0a52e'},
   {name:'分 5 区 Zones',    gen:(R)=>ordZones(R,K,5),        color:'#b07fe0'},
-  {name:'交错 Interleaved', gen:(R)=>ordInterleave(R,K,6),   color:'#e06b6b'}
+  {name:'交错↓(你的)', gen:(R)=>ordInterleaveDesc(R,K,6),   color:'#e06b6b'}
 ];
 
 /* ---------- 单个机舱 ---------- */
