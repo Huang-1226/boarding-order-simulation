@@ -167,6 +167,7 @@ function avg(a){ return a.reduce((s,x)=>s+x,0)/a.length; }
 function orderRandom(R){ const a=[]; for(let r=1;r<=R;r++) for(let k=0;k<6;k++) a.push(r); return shuffle(a); }
 function orderBackToFront(R){ const a=[]; for(let r=R;r>=1;r--) for(let k=0;k<6;k++) a.push(r); return a; }
 function orderZones(R,nz){ const zs=Math.floor(R/nz), a=[]; for(let z=nz;z>=1;z--){ const lo=(z-1)*zs+1, hi=(z<nz)? z*zs : R, s=[]; for(let r=lo;r<=hi;r++) for(let k=0;k<6;k++) s.push(r); shuffle(s); for(const x of s) a.push(x);} return a; }
+function orderInterleaveDesc(R,stride){ const a=[]; for(let off=0;off<stride;off++){ const rows=[]; for(let r=1+off;r<=R;r+=stride) rows.push(r); rows.reverse(); for(const r of rows) for(let k=0;k<6;k++) a.push(r);} return a; }
 
 /* ---------- 模拟核心 ---------- */
 function simulate(order, R, STOW){
@@ -209,12 +210,14 @@ function run(){
   const randRes=[]; for(let i=0;i<REP;i++) randRes.push(simulate(orderRandom(R),R,STOW));
   const bfRes=[simulate(orderBackToFront(R),R,STOW)];
   const zoneRes=[]; for(let i=0;i<REP;i++) zoneRes.push(simulate(orderZones(R,5),R,STOW));
+  const ilRes=[simulate(orderInterleaveDesc(R,6),R,STOW)];   // deterministic: single run
 
   const agg=res=>({time:avg(res.map(r=>r.time)), conc:avg(res.map(r=>r.conc)), blocked:avg(res.map(r=>r.blocked))});
   const data=[
     Object.assign({name:'随机', en:'Random', color:'var(--red)'}, agg(randRes)),
     Object.assign({name:'从后往前', en:'Back-to-front', color:'var(--green)'}, agg(bfRes)),
-    Object.assign({name:'分 5 区', en:'Zones (5)', color:'var(--blue)'}, agg(zoneRes))
+    Object.assign({name:'分 5 区', en:'Zones (5)', color:'var(--blue)'}, agg(zoneRes)),
+    Object.assign({name:'交错↓', en:'Interleaved ↓', color:'var(--amber)'}, agg(ilRes))
   ];
   lastData={R,STOW,REP,data};
   const base=data[0].time;

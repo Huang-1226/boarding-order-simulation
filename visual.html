@@ -68,11 +68,10 @@ function ordInterleaveDesc(R,K,stride){ const a=[]; for(let off=0;off<stride;off
 
 const K = 6;
 const STRATS = [
-  {name:'随机 Random',      gen:(R)=>ordRandom(R,K),         color:'#2f7ed8'},
-  {name:'colRandom',       gen:(R)=>ordColRandom(R,K),      color:'#7fd1a3'},
-  {name:'从后往前 Back',    gen:(R)=>ordBack(R,K),           color:'#e0a52e'},
-  {name:'分 5 区 Zones',    gen:(R)=>ordZones(R,K,5),        color:'#b07fe0'},
-  {name:'交错↓(你的)', gen:(R)=>ordInterleaveDesc(R,K,6),   color:'#e06b6b'}
+  {name:'随机 Random',   gen:(R)=>ordRandom(R,K),         color:'#2f7ed8'},
+  {name:'从后往前 Back', gen:(R)=>ordBack(R,K),           color:'#e0a52e'},
+  {name:'分 5 区 Zones', gen:(R)=>ordZones(R,K,5),        color:'#b07fe0'},
+  {name:'交错↓(你的)',   gen:(R)=>ordInterleaveDesc(R,K,6), color:'#e06b6b'}
 ];
 
 /* ---------- 单个机舱 ---------- */
@@ -128,7 +127,7 @@ function setup(){
 
 function draw(){
   const dpr=window.devicePixelRatio||1;
-  const seatW=7, seatH=9, aisleW=14, rowH=13, cabGap=18, leftM=12, topM=44, bottomM=12;
+  const seatW=7, seatH=9, aisleW=14, rowH=13, cabGap=54, leftM=20, topM=44, bottomM=12;
   const cabW = 6*seatW + aisleW;
   const W = leftM + lanes.length*cabW + (lanes.length-1)*cabGap + leftM;
   const H = topM + R*rowH + bottomM;
