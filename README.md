@@ -23,7 +23,7 @@ Contrary to intuition, **random boarding is the fastest** and **back-to-front is
 ## Live Demo
 
 Open [`index.html`](index.html) in any browser — no installation, no internet required.
-Adjust rows / stow time / repeats, run the simulation, and export the results as CSV.
+It shows an animated top-down cabin (four strategies side by side; passengers walk, stow, and sit down) together with an averaged statistics table; adjust rows / stow time / repeats and export the results as CSV.
 
 *(You can enable GitHub Pages in the repository settings to host it as a website.)*
 

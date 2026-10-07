@@ -3,281 +3,237 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Boarding Order Simulation · 登机顺序优化模拟</title>
+<title>登机策略模拟器 · Boarding Strategies Simulator</title>
 <style>
-  :root{
-    --bg:#eef3f9; --card:#ffffff; --ink:#1b2a3a; --muted:#647489;
-    --brand:#0b3d6b; --brand2:#1f6fb2; --line:#d7e1ec;
-    --red:#d94b4b; --green:#1fa463; --blue:#1f6fb2; --amber:#e0a52e;
-    --shadow:0 10px 30px rgba(16,42,74,.10);
-  }
+  :root{ --walk:#2f7ed8; --stow:#d94b4b; --red:#d94b4b; --green:#1fa463; --blue:#1f6fb2; --amber:#e0a52e;
+         --bg:#0b1622; --panel:#13233a; --line:#27405f; --ink:#e7eef7; --muted:#8fa6c0; }
   *{box-sizing:border-box}
-  body{
-    margin:0; background:linear-gradient(180deg,#e9f0f8 0%, #eef3f9 260px);
-    color:var(--ink); font-family:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    line-height:1.5;
-  }
-  .wrap{max-width:900px; margin:0 auto; padding:28px 18px 60px;}
-  header.hero{
-    background:linear-gradient(135deg,#0b3d6b,#1f6fb2);
-    color:#fff; border-radius:16px; padding:26px 26px 22px; box-shadow:var(--shadow);
-    position:relative; overflow:hidden;
-  }
-  header.hero::after{
-    content:""; position:absolute; right:-40px; top:-40px; width:180px; height:180px;
-    background:radial-gradient(circle,rgba(255,255,255,.18),transparent 70%); border-radius:50%;
-  }
-  header.hero h1{margin:0; font-size:23px; letter-spacing:.3px;}
-  header.hero .en{font-size:13px; opacity:.85; margin-top:2px;}
-  header.hero p{margin:10px 0 0; font-size:13px; opacity:.92; max-width:640px;}
-  .badge{display:inline-block; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.28);
-    padding:2px 10px; border-radius:999px; font-size:11.5px; margin-top:12px;}
-
-  .grid{display:grid; grid-template-columns:1fr; gap:16px; margin-top:18px;}
-  @media(min-width:820px){ .grid.two{grid-template-columns:360px 1fr;} }
-
-  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow);}
-  .card h2{font-size:15px; margin:0 0 14px; color:var(--brand); display:flex; align-items:center; gap:8px;}
-  .card h2 .en{color:var(--muted); font-size:11.5px; font-weight:400;}
-
-  .field{margin-bottom:16px;}
-  .field label{display:block; font-size:13px; margin-bottom:6px; color:#33465c;}
-  .field .hint{color:var(--muted); font-size:11.5px; font-weight:400;}
-  input[type=number]{
-    width:100%; padding:10px 12px; border:1px solid #c3d2e2; border-radius:9px; font-size:14px;
-    background:#f8fbff; transition:border .15s, box-shadow .15s;
-  }
-  input[type=number]:focus{outline:none; border-color:var(--brand2); box-shadow:0 0 0 3px rgba(31,111,178,.15);}
-  .row{display:flex; gap:10px; flex-wrap:wrap;}
-  .row .field{flex:1; min-width:110px;}
-
-  button{
-    border:0; border-radius:10px; padding:11px 18px; font-size:14px; font-weight:600; cursor:pointer;
-    transition:transform .08s, background .15s, opacity .15s;
-  }
-  button:active{transform:translateY(1px);}
-  .btn-primary{background:linear-gradient(135deg,#0b3d6b,#1f6fb2); color:#fff; width:100%;}
-  .btn-primary:hover{filter:brightness(1.08);}
-  .btn-ghost{background:#eef3f9; color:#33465c; border:1px solid var(--line);}
-  .btn-ghost:hover{background:#e4ecf5;}
-  .btn-row{display:flex; gap:10px; margin-top:6px;}
-  .btn-row .btn-ghost{flex:1;}
-
-  table{width:100%; border-collapse:collapse; margin-top:6px;}
-  th,td{padding:10px 10px; font-size:13px; text-align:center; border-bottom:1px solid var(--line);}
-  th{color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em;}
-  tbody tr:hover{background:#f6faff;}
-  td.name{font-weight:600; text-align:left;}
-  .dot{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; vertical-align:middle;}
-
-  .chart{display:flex; align-items:flex-end; justify-content:space-around; gap:20px; height:230px;
-    margin-top:18px; padding:14px 6px 0; border-top:1px dashed var(--line);}
-  .bar{flex:1; max-width:130px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
-  .bar .val{font-size:13px; font-weight:700; margin-bottom:6px; color:#283a4d;}
-  .bar .fill{width:70%; border-radius:8px 8px 0 0; min-height:4px; transition:height .5s cubic-bezier(.2,.7,.3,1);}
-  .bar .name{font-size:12.5px; margin-top:8px; color:var(--muted); text-align:center;}
-
-  .conclusion{margin-top:16px; padding:13px 15px; border-radius:10px; background:#f2fbf5;
-    border:1px solid #cbe9d6; color:#14603a; font-size:13.5px;}
-  .conclusion b{color:#0c7a46;}
-
-  details{margin-top:16px; border:1px solid var(--line); border-radius:12px; padding:12px 16px; background:#fbfdff;}
-  details summary{cursor:pointer; font-weight:600; color:var(--brand); font-size:13.5px;}
-  details ul{margin:10px 0 0; padding-left:20px; font-size:13px; color:#3b4c60;}
-  details li{margin:4px 0;}
-
-  footer{margin-top:26px; text-align:center; color:var(--muted); font-size:12px; line-height:1.8;}
-  footer a{color:var(--brand2); text-decoration:none;}
-  .empty{color:#8895a6; text-align:center; padding:22px 0; font-size:13px;}
+  body{margin:0;background:#0b1622;color:var(--ink);font-family:"Microsoft YaHei",system-ui,Segoe UI,Roboto,sans-serif;line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 50px}
+  header{background:linear-gradient(135deg,#123357,#1f6fb2);border-radius:14px;padding:18px 22px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  header h1{margin:0;font-size:20px}
+  header p{margin:6px 0 0;color:#d5e6f7;font-size:13px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:16px}
+  h2.sec{font-size:14px;margin:0 0 12px;color:#cfe2f5}
+  .ctrl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+  label{font-size:13px;color:#cddcec}
+  input[type=number]{width:70px;padding:6px 8px;border:1px solid #3a5a80;border-radius:8px;background:#0f2440;color:#eaf2fb}
+  input[type=range]{width:130px;vertical-align:middle}
+  button{border:0;border-radius:9px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;background:#1f6fb2;color:#fff}
+  button.ghost{background:#173455;color:#cfe2f5;border:1px solid #31567f}
+  button:hover{filter:brightness(1.1)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .sq{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  canvas{width:100%;height:auto;display:block;background:#0a1420;border:1px solid var(--line);border-radius:12px;margin-top:4px}
+  .tick{font-size:15px;color:#cfe2f5}.tick b{color:#7fd1a3}
+  table{width:100%;border-collapse:collapse;margin-top:6px}
+  th,td{padding:9px 10px;font-size:13px;text-align:center;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:12px}
+  td.name{text-align:left;font-weight:600}
+  .cdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .concl{margin-top:12px;padding:11px 14px;border-radius:10px;background:#12283f;border:1px solid #244a70;color:#cfe2f5;font-size:13.5px}
+  .concl b{color:#7fd1a3}
+  footer{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
 </style>
 </head>
 <body>
 <div class="wrap">
-
-  <header class="hero">
-    <h1>登机顺序优化模拟</h1>
-    <div class="en">Boarding Order Simulation</div>
-    <p>比较「随机 / 从后往前 / 分区」三种登机策略所需时间。纯本地运行，无需联网与安装。</p>
-    <span class="badge">航空营运 · 供应链 · 数学建模</span>
+  <header>
+    <h1>登机策略模拟器</h1>
+    <p>上方为俯视机舱动画（门在顶部），下方为平均用时统计。蓝=行走，红=放行李，亮座=已就座。</p>
   </header>
 
-  <div class="grid two">
-    <!-- 控制面板 -->
-    <section class="card">
-      <h2>参数设置 <span class="en">Parameters</span></h2>
-
-      <div class="field">
-        <label>排数 Rows (R) <span class="hint">每排 6 座</span></label>
-        <input type="number" id="R" value="30" min="5" max="80">
-      </div>
-
-      <div class="row">
-        <div class="field">
-          <label>放行李时间 <span class="hint">Stow (tick)</span></label>
-          <input type="number" id="STOW" value="3" min="1" max="10">
-        </div>
-        <div class="field">
-          <label>重复次数 <span class="hint">Repeats</span></label>
-          <input type="number" id="REPEAT" value="20" min="1" max="200">
-        </div>
-      </div>
-
-      <button class="btn-primary" onclick="run()">开始模拟 · Run</button>
-      <div class="btn-row">
-        <button class="btn-ghost" onclick="downloadCSV()">下载结果 CSV</button>
-        <button class="btn-ghost" onclick="resetAll()">重置</button>
-      </div>
-    </section>
-
-    <!-- 结果 -->
-    <section class="card">
-      <h2>模拟结果 <span class="en">Results</span></h2>
-      <table>
-        <thead><tr><th style="text-align:left">策略 Strategy</th><th>平均时间 (tick)</th><th>相对随机</th><th>并行度</th><th>被堵次数</th></tr></thead>
-        <tbody id="tbody"><tr><td colspan="5" class="empty">点击「开始模拟」查看结果</td></tr></tbody>
-      </table>
-      <div class="chart" id="chart"></div>
-      <div class="conclusion" id="conclusion" style="display:none"></div>
-    </section>
+  <div class="panel">
+    <div class="ctrl">
+      <label>排数 R <input type="number" id="R" value="30" min="5" max="50"></label>
+      <label>放行李 S <input type="number" id="S" value="3" min="1" max="10"></label>
+      <label>统计次数 <input type="number" id="REP" value="20" min="1" max="200"></label>
+      <label>速度 <input type="range" id="speed" min="1" max="30" value="12"></label>
+      <button id="play">▶ 播放</button>
+      <button class="ghost" id="step">单步</button>
+      <button class="ghost" id="reset">重置</button>
+      <span class="tick">tick: <b id="tick">0</b></span>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#2f7ed8"></span>行走中</span>
+      <span><span class="dot" style="background:#d94b4b"></span>正在放行李</span>
+      <span><span class="sq" style="background:#3a6b52"></span>已坐入座位</span>
+      <span>3 座 | 过道 | 3 座</span>
+    </div>
   </div>
 
-  <details>
-    <summary>模型说明 · About the model</summary>
-    <ul>
-      <li>飞机为一条过道，乘客从机头进入并走到自己那排。</li>
-      <li>到达座位后需放行李，占用过道 <b>STOW</b> 个时间步，期间后面的人无法通过。</li>
-      <li>每人每步最多前进 1 格；前面有人则等待（不能超车）。</li>
-      <li>每个时间步只允许 1 人进入机舱（单列登机）。</li>
-      <li>时间步（tick）越少代表登机越快。</li>
-    </ul>
-  </details>
+  <canvas id="cv"></canvas>
 
-  <footer>
-    Open source · MIT License · 欢迎用于学习与改进<br>
-    登机顺序优化研究项目 · Boarding Order Optimization
-  </footer>
+  <div class="panel">
+    <h2 class="sec">平均用时统计（<span id="replbl">20</span> 次取平均 · 交错↓为确定性，单次即准）</h2>
+    <table>
+      <thead><tr><th style="text-align:left">策略</th><th>平均时间 (tick)</th><th>相对随机</th><th>平均并行度</th><th>被堵次数</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="concl" id="concl"></div>
+    <div style="margin-top:12px"><button class="ghost" id="csv">下载结果 CSV</button></div>
+  </div>
+
+  <footer>纯本地运行 · 与 research 中仿真/理论一致 · MIT License</footer>
 </div>
 
 <script>
-/* ---------- 工具 ---------- */
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-function avg(a){ return a.reduce((s,x)=>s+x,0)/a.length; }
+/* ================= 策略 ================= */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function ordRandom(R,K){ const a=[]; for(let r=1;r<=R;r++) for(let k=0;k<K;k++) a.push(r); return shuffle(a); }
+function ordBack(R,K){ const a=[]; for(let r=R;r>=1;r--) for(let k=0;k<K;k++) a.push(r); return a; }
+function ordZones(R,K,nz){ const zs=Math.floor(R/nz),a=[]; for(let z=nz;z>=1;z--){ const lo=(z-1)*zs+1,hi=(z<nz)? z*zs : R,s=[]; for(let r=lo;r<=hi;r++) for(let k=0;k<K;k++) s.push(r); shuffle(s); for(const x of s) a.push(x);} return a; }
+function ordInterleaveDesc(R,K,stride){ const a=[]; for(let off=0;off<stride;off++){ const rows=[]; for(let r=1+off;r<=R;r+=stride) rows.push(r); rows.reverse(); for(const r of rows) for(let k=0;k<K;k++) a.push(r);} return a; }
 
-/* ---------- 策略 ---------- */
-function orderRandom(R){ const a=[]; for(let r=1;r<=R;r++) for(let k=0;k<6;k++) a.push(r); return shuffle(a); }
-function orderBackToFront(R){ const a=[]; for(let r=R;r>=1;r--) for(let k=0;k<6;k++) a.push(r); return a; }
-function orderZones(R,nz){ const zs=Math.floor(R/nz), a=[]; for(let z=nz;z>=1;z--){ const lo=(z-1)*zs+1, hi=(z<nz)? z*zs : R, s=[]; for(let r=lo;r<=hi;r++) for(let k=0;k<6;k++) s.push(r); shuffle(s); for(const x of s) a.push(x);} return a; }
-function orderInterleaveDesc(R,stride){ const a=[]; for(let off=0;off<stride;off++){ const rows=[]; for(let r=1+off;r<=R;r+=stride) rows.push(r); rows.reverse(); for(const r of rows) for(let k=0;k<6;k++) a.push(r);} return a; }
+const K = 6;
+const STRATS = [
+  {name:'随机 Random',   gen:(R)=>ordRandom(R,K),           color:'#d94b4b'},
+  {name:'从后往前 Back', gen:(R)=>ordBack(R,K),             color:'#e0a52e'},
+  {name:'分 5 区 Zones', gen:(R)=>ordZones(R,K,5),          color:'#b07fe0'},
+  {name:'交错↓ Interleaved', gen:(R)=>ordInterleaveDesc(R,K,6), color:'#7fd1a3'}
+];
 
-/* ---------- 模拟核心 ---------- */
+/* ================= 统计用仿真（返回用时/并行度/堵塞） ================= */
 function simulate(order, R, STOW){
-  const n=order.length;
-  const aisle=new Array(R+3).fill(null);
-  const target=order.slice();
-  let nextp=0, seated=0, t=0, sumConc=0, totalBlocked=0;
-  const stowLeft=new Map();
-  while(seated<n){
-    t++;
+  const n=order.length, aisle=new Array(R+3).fill(null), target=order.slice();
+  let nextp=0, seated=0, t=0, sumConc=0, totalBlocked=0; const stowLeft=new Map();
+  while(seated<n){ t++;
     if(nextp<n && aisle[1]===null){ aisle[1]=nextp; nextp++; }
     let blocked=0;
-    for(let pos=R; pos>=1; pos--){
-      const p=aisle[pos];
-      if(p===null || stowLeft.has(p)) continue;
+    for(let pos=R; pos>=1; pos--){ const p=aisle[pos]; if(p===null||stowLeft.has(p)) continue;
       if(target[p]===pos){ stowLeft.set(p,STOW); continue; }
-      if(aisle[pos+1]===null){ aisle[pos]=null; aisle[pos+1]=p; }
-      else { blocked++; }
-    }
-    const done=[];
-    for(const [p,v] of stowLeft){ const nv=v-1; if(nv<=0) done.push(p); else stowLeft.set(p,nv); }
-    for(const p of done){
-      for(let pos=1;pos<=R;pos++){ if(aisle[pos]===p){ aisle[pos]=null; break; } }
-      stowLeft.delete(p); seated++;
-    }
-    sumConc += stowLeft.size;
-    totalBlocked += blocked;
+      if(aisle[pos+1]===null){ aisle[pos]=null; aisle[pos+1]=p; } else blocked++; }
+    const done=[]; for(const [p,v] of stowLeft){ const nv=v-1; if(nv<=0)done.push(p); else stowLeft.set(p,nv); }
+    for(const p of done){ for(let pos=1;pos<=R;pos++){ if(aisle[pos]===p){aisle[pos]=null;break;} } stowLeft.delete(p); seated++; }
+    sumConc+=stowLeft.size; totalBlocked+=blocked;
   }
-  return {time:t, conc: sumConc/t, blocked: totalBlocked};
+  return {time:t, conc:sumConc/t, blocked:totalBlocked};
+}
+const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
+
+/* ================= 动画用（带座位） ================= */
+class Lane {
+  constructor(name,color){ this.name=name; this.color=color; }
+  reset(order,R,S){ this.R=R; this.S=S; this.n=order.length; this.target=order.slice();
+    this.aisle=new Array(R+3).fill(-1); this.stowing=new Array(this.n).fill(false); this.left=new Array(this.n).fill(0);
+    this.seats=[]; for(let r=0;r<=R;r++) this.seats.push(new Array(6).fill(-1));
+    this.nextp=0; this.seated=0; this.t=0; this.done=false; this.finish=null; }
+  step(){ if(this.done) return;
+    const R=this.R,S=this.S,a=this.aisle,tg=this.target; this.t++;
+    if(this.nextp<this.n && a[1]===-1){ a[1]=this.nextp; this.nextp++; }
+    for(let pos=R;pos>=1;pos--){ const p=a[pos]; if(p===-1||this.stowing[p]) continue;
+      if(tg[p]===pos){ this.stowing[p]=true; this.left[p]=S; continue; }
+      if(a[pos+1]===-1){ a[pos]=-1; a[pos+1]=p; } }
+    for(let p=0;p<this.n;p++){ if(this.stowing[p]){ this.left[p]--;
+      if(this.left[p]<=0){ this.stowing[p]=false; const r=tg[p];
+        for(let pos=1;pos<=R;pos++){ if(a[pos]===p){ a[pos]=-1; break; } }
+        for(let si=0;si<6;si++){ if(this.seats[r][si]===-1){ this.seats[r][si]=p; break; } }
+        this.seated++; } } }
+    if(this.seated===this.n){ this.done=true; this.finish=this.t; } }
 }
 
-/* ---------- 运行 ---------- */
-let lastData=null;
+/* ================= 状态 ================= */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let lanes=[], R=30, S=3, REP=20, timer=null;
 
-function run(){
-  const R=Math.max(5,Math.min(80,+document.getElementById('R').value||30));
-  const STOW=Math.max(1,Math.min(10,+document.getElementById('STOW').value||3));
-  const REP=Math.max(1,Math.min(200,+document.getElementById('REPEAT').value||20));
+function readParams(){
+  R=Math.max(5,Math.min(50,+document.getElementById('R').value||30));
+  S=Math.max(1,Math.min(10,+document.getElementById('S').value||3));
+  REP=Math.max(1,Math.min(200,+document.getElementById('REP').value||20));
+}
 
-  const randRes=[]; for(let i=0;i<REP;i++) randRes.push(simulate(orderRandom(R),R,STOW));
-  const bfRes=[simulate(orderBackToFront(R),R,STOW)];
-  const zoneRes=[]; for(let i=0;i<REP;i++) zoneRes.push(simulate(orderZones(R,5),R,STOW));
-  const ilRes=[simulate(orderInterleaveDesc(R,6),R,STOW)];   // deterministic: single run
+function setup(){
+  readParams();
+  lanes=STRATS.map(st=>{ const L=new Lane(st.name, st.color); L.reset(st.gen(R), R, S); return L; });
+  document.getElementById('replbl').textContent=REP;
+  stats(); draw(); document.getElementById('tick').textContent='0';
+}
 
-  const agg=res=>({time:avg(res.map(r=>r.time)), conc:avg(res.map(r=>r.conc)), blocked:avg(res.map(r=>r.blocked))});
-  const data=[
-    Object.assign({name:'随机', en:'Random', color:'var(--red)'}, agg(randRes)),
-    Object.assign({name:'从后往前', en:'Back-to-front', color:'var(--green)'}, agg(bfRes)),
-    Object.assign({name:'分 5 区', en:'Zones (5)', color:'var(--blue)'}, agg(zoneRes)),
-    Object.assign({name:'交错↓', en:'Interleaved ↓', color:'var(--amber)'}, agg(ilRes))
-  ];
-  lastData={R,STOW,REP,data};
-  const base=data[0].time;
-
-  /* 表格 */
+function stats(){
+  const rows=STRATS.map(st=>{
+    const res=[]; const det = st.name.indexOf('交错')>=0 || st.name.indexOf('Back')>=0;
+    const nrun = det ? 1 : REP;
+    for(let i=0;i<nrun;i++) res.push(simulate(st.gen(R),R,S));
+    return {name:st.name, color:st.color, time:mean(res.map(r=>r.time)), conc:mean(res.map(r=>r.conc)), blocked:mean(res.map(r=>r.blocked))};
+  });
+  lastRows=rows;
+  const base=rows[0].time;
   const tb=document.getElementById('tbody'); tb.innerHTML='';
-  data.forEach(d=>{
+  rows.forEach(d=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="name"><span class="dot" style="background:${d.color}"></span>${d.name} <span style="color:#8895a6;font-size:11px">${d.en}</span></td>
+    tr.innerHTML=`<td class="name"><span class="cdot" style="background:${d.color}"></span>${d.name}</td>
       <td>${d.time.toFixed(1)}</td><td>${(d.time/base*100).toFixed(0)}%</td>
       <td>${d.conc.toFixed(2)}</td><td>${d.blocked.toFixed(0)}</td>`;
     tb.appendChild(tr);
   });
+  const fastest=rows.reduce((a,b)=>a.time<b.time?a:b);
+  document.getElementById('concl').innerHTML=`最快：<b>${fastest.name}</b>（平均 ${fastest.time.toFixed(1)} tick），比"随机"快约 <b>${(((base-fastest.time)/base)*100).toFixed(0)}%</b>。`;
+}
+let lastRows=null;
 
-  /* 柱状图 */
-  const max=Math.max(...data.map(d=>d.time));
-  const chart=document.getElementById('chart'); chart.innerHTML='';
-  data.forEach(d=>{
-    const h=Math.round(d.time/max*170);
-    const div=document.createElement('div'); div.className='bar';
-    div.innerHTML=`<div class="val">${d.time.toFixed(1)}</div>
-      <div class="fill" style="height:0;background:${d.color}"></div>
-      <div class="name">${d.name}</div>`;
-    chart.appendChild(div);
-    requestAnimationFrame(()=>{ div.querySelector('.fill').style.height=h+'px'; });
+/* ================= 渲染动画 ================= */
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  const seatW=7, seatH=9, aisleW=14, rowH=13, cabGap=54, leftM=20, topM=44, bottomM=26;
+  const cabW=6*seatW+aisleW;
+  const W=leftM + lanes.length*cabW + (lanes.length-1)*cabGap + leftM;
+  const H=topM + R*rowH + bottomM;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.maxWidth=W+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+
+  lanes.forEach((L,li)=>{
+    const cabX=leftM+li*(cabW+cabGap), aisleX=cabX+3*seatW;
+    ctx.fillStyle=L.color; ctx.font='bold 12px "Microsoft YaHei",sans-serif'; ctx.textAlign='center';
+    ctx.fillText(L.name, cabX+cabW/2, 18); ctx.textAlign='left';
+    ctx.fillStyle='#375a82'; ctx.fillRect(aisleX, topM-8, aisleW, 6);
+    ctx.fillStyle='#9fc0e3'; ctx.font='9px sans-serif'; ctx.fillText('门 door', aisleX-2, topM-12);
+    ctx.fillStyle='#12233a'; ctx.strokeStyle='#233b58'; ctx.fillRect(aisleX, topM, aisleW, R*rowH); ctx.strokeRect(aisleX+.5, topM+.5, aisleW-1, R*rowH-1);
+    for(let r=1;r<=R;r++){
+      const y=topM+(r-1)*rowH;
+      for(let si=0;si<6;si++){
+        const x = si<3 ? cabX+si*seatW : aisleX+aisleW+(si-3)*seatW;
+        const occ=L.seats[r][si]!==-1;
+        ctx.fillStyle = occ ? L.color : '#1b2f47'; ctx.globalAlpha = occ?0.55:1;
+        ctx.fillRect(x,y+1.5,seatW-1,rowH-3); ctx.globalAlpha=1;
+        ctx.strokeStyle='#20344c'; ctx.strokeRect(x+.5,y+2,seatW-2,rowH-4);
+      }
+      const p=L.aisle[r];
+      if(p!==-1){ const cx=aisleX+aisleW/2, cy=y+rowH/2, rad=Math.min(5,rowH/2-1.5);
+        ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.fillStyle=L.stowing[p]?'#d94b4b':'#2f7ed8'; ctx.fill(); }
+    }
+    ctx.fillStyle=L.done?'#7fd1a3':'#8fa6c0'; ctx.font='11px monospace';
+    ctx.fillText(L.done?('✓ T='+L.finish):('seated '+L.seated+'/'+L.n), cabX, topM+R*rowH+18);
   });
-
-  /* 结论 */
-  const fastest=data.reduce((a,b)=>a.time<b.time?a:b);
-  const mostParallel=data.reduce((a,b)=>a.conc>b.conc?a:b);
-  const box=document.getElementById('conclusion');
-  box.style.display='block';
-  box.innerHTML=`最快：<b>${fastest.name}</b>（${fastest.time.toFixed(1)} tick），比"随机"快约 <b>${(((base-fastest.time)/base)*100).toFixed(0)}%</b>。
-    <br><b>机制：</b>并行度最高的是 <b>${mostParallel.name}</b>（平均 ${mostParallel.conc.toFixed(2)} 人同时放行李），被堵次数最少——这就是它更快的原因（并行放行李 vs 串行等待）。`;
+  ctx.fillStyle='#4d6787'; ctx.font='10px monospace';
+  for(let r=1;r<=R;r+=5){ ctx.fillText(r, leftM-10, topM+(r-1)*rowH+rowH/2+3); }
 }
 
-/* ---------- 导出 CSV ---------- */
-function downloadCSV(){
-  if(!lastData){ alert('请先运行模拟'); return; }
-  const {R,STOW,data}=lastData;
-  let csv='strategy,R,stow,avg_time,avg_concurrent,total_blocked\n';
-  data.forEach(d=>{ csv+=`${d.name},${R},${STOW},${d.time.toFixed(1)},${d.conc.toFixed(2)},${d.blocked.toFixed(0)}\n`; });
+/* ================= 控制 ================= */
+function tickAll(){
+  let allDone=true;
+  lanes.forEach(L=>{ if(!L.done) L.step(); if(!L.done) allDone=false; });
+  document.getElementById('tick').textContent = lanes.length? Math.max(...lanes.map(l=>l.t)) : 0;
+  draw(); if(allDone) pause();
+}
+function play(){ if(timer) return; timer=setInterval(tickAll, Math.max(8,220-7*(+document.getElementById('speed').value))); document.getElementById('play').textContent='⏸ 暂停'; }
+function pause(){ if(timer){ clearInterval(timer); timer=null; } document.getElementById('play').textContent='▶ 播放'; }
+document.getElementById('play').onclick=()=>{ timer?pause():play(); };
+document.getElementById('step').onclick=()=>{ pause(); tickAll(); };
+document.getElementById('reset').onclick=()=>{ pause(); setup(); };
+document.getElementById('R').onchange=()=>{ pause(); setup(); };
+document.getElementById('S').onchange=()=>{ pause(); setup(); };
+document.getElementById('REP').onchange=()=>{ pause(); setup(); };
+document.getElementById('csv').onclick=()=>{
+  if(!lastRows){ return; }
+  let csv='strategy,R,stow,repeats,avg_time,rel_random,avg_concurrent,total_blocked\n';
+  const base=lastRows[0].time;
+  lastRows.forEach(d=>{ csv+=`${d.name},${R},${S},${REP},${d.time.toFixed(1)},${(d.time/base).toFixed(3)},${d.conc.toFixed(2)},${d.blocked.toFixed(0)}\n`; });
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`boarding_R${R}_STOW${STOW}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`boarding_R${R}_S${S}.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
 
-/* ---------- 重置 ---------- */
-function resetAll(){
-  document.getElementById('R').value=30;
-  document.getElementById('STOW').value=3;
-  document.getElementById('REPEAT').value=20;
-  document.getElementById('tbody').innerHTML='<tr><td colspan="5" class="empty">点击「开始模拟」查看结果</td></tr>';
-  document.getElementById('chart').innerHTML='';
-  document.getElementById('conclusion').style.display='none';
-  lastData=null;
-}
+setup();
 </script>
 </body>
 </html>
