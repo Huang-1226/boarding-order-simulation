@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登机策略可视化 · Boarding Strategies Visualizer</title>
+<style>
+  :root{ --walk:#2f7ed8; --stow:#d94b4b; --bg:#0e1a2b; --panel:#13233a; --line:#27405f; --ink:#e7eef7; --muted:#8fa6c0; }
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b1622;color:var(--ink);font-family:"Microsoft YaHei",system-ui,Segoe UI,Roboto,sans-serif;line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 50px}
+  header{background:linear-gradient(135deg,#123357,#1f6fb2);border-radius:14px;padding:18px 22px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  header h1{margin:0;font-size:20px}
+  header p{margin:6px 0 0;color:#d5e6f7;font-size:13px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:16px}
+  .ctrl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+  label{font-size:13px;color:#cddcec}
+  input[type=number]{width:70px;padding:6px 8px;border:1px solid #3a5a80;border-radius:8px;background:#0f2440;color:#eaf2fb}
+  input[type=range]{width:150px;vertical-align:middle}
+  button{border:0;border-radius:9px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;background:#1f6fb2;color:#fff}
+  button.ghost{background:#173455;color:#cfe2f5;border:1px solid #31567f}
+  button:hover{filter:brightness(1.1)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  canvas{width:100%;height:auto;display:block;background:#0a1420;border:1px solid var(--line);border-radius:12px;margin-top:14px}
+  .tick{font-size:15px;color:#cfe2f5}
+  .tick b{color:#7fd1a3}
+  footer{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>登机策略可视化对比</h1>
+    <p>五种策略并排同时模拟，看谁先登完。蓝=行走，红=放行李，灰格=空位。</p>
+  </header>
+
+  <div class="panel">
+    <div class="ctrl">
+      <label>排数 R <input type="number" id="R" value="30" min="5" max="60"></label>
+      <label>放行李 S <input type="number" id="S" value="3" min="1" max="10"></label>
+      <label>速度 <input type="range" id="speed" min="1" max="30" value="12"></label>
+      <button id="play">▶ 播放</button>
+      <button class="ghost" id="step">单步</button>
+      <button class="ghost" id="reset">重置</button>
+      <span class="tick">tick: <b id="tick">0</b></span>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--walk)"></span>行走中</span>
+      <span><span class="dot" style="background:var(--stow)"></span>正在放行李</span>
+      <span><span class="dot" style="background:#33475f"></span>空位</span>
+      <span>每排 6 座 · 单过道 · 每 tick 进 1 人</span>
+    </div>
+  </div>
+
+  <canvas id="cv"></canvas>
+
+  <footer>纯本地运行 · 与 research 中的仿真/理论一致 · MIT License</footer>
+</div>
+
+<script>
+/* ---------- 策略生成 ---------- */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function ordRandom(R,K){ const a=[]; for(let r=1;r<=R;r++) for(let k=0;k<K;k++) a.push(r); return shuffle(a); }
+function ordColRandom(R,K){ const a=[]; for(let k=0;k<K;k++){ const s=[]; for(let r=1;r<=R;r++) s.push(r); shuffle(s); for(const x of s) a.push(x);} return a; }
+function ordBack(R,K){ const a=[]; for(let r=R;r>=1;r--) for(let k=0;k<K;k++) a.push(r); return a; }
+function ordZones(R,K,nz){ const zs=Math.floor(R/nz),a=[]; for(let z=nz;z>=1;z--){ const lo=(z-1)*zs+1,hi=(z<nz)?z*zs:R,s=[]; for(let r=lo;r<=hi;r++) for(let k=0;k<K;k++) s.push(r); shuffle(s); for(const x of s) a.push(x);} return a; }
+function ordInterleave(R,K,stride){ const a=[]; for(let off=0;off<stride;off++){ for(let r=1+off;r<=R;r+=stride) for(let k=0;k<K;k++) a.push(r);} return a; }
+
+const K = 6;
+const STRATS = [
+  {name:'随机 Random',        gen:(R)=>ordRandom(R,K),              color:'#2f7ed8'},
+  {name:'colRandom',         gen:(R)=>ordColRandom(R,K),           color:'#7fd1a3'},
+  {name:'从后往前 Back',      gen:(R)=>ordBack(R,K),                color:'#e0a52e'},
+  {name:'分 5 区 Zones',      gen:(R)=>ordZones(R,K,5),             color:'#b07fe0'},
+  {name:'交错 Interleaved',   gen:(R)=>ordInterleave(R,K,6),        color:'#e06b6b'}
+];
+
+/* ---------- 单个模拟 ---------- */
+class Lane {
+  constructor(name, color){ this.name=name; this.color=color; }
+  reset(order, R, S){
+    this.R=R; this.S=S; this.n=order.length; this.target=order.slice();
+    this.aisle=new Array(R+3).fill(-1);
+    this.stowing=new Array(this.n).fill(false);
+    this.left=new Array(this.n).fill(0);
+    this.nextp=0; this.seated=0; this.t=0; this.done=false; this.finish=null;
+  }
+  step(){
+    if(this.done) return;
+    const R=this.R, S=this.S, a=this.aisle, tg=this.target;
+    this.t++;
+    if(this.nextp<this.n && a[1]===-1){ a[1]=this.nextp; this.nextp++; }
+    for(let pos=R; pos>=1; pos--){
+      const p=a[pos];
+      if(p===-1 || this.stowing[p]) continue;
+      if(tg[p]===pos){ this.stowing[p]=true; this.left[p]=S; continue; }
+      if(a[pos+1]===-1){ a[pos]=-1; a[pos+1]=p; }
+    }
+    for(let p=0;p<this.n;p++){
+      if(this.stowing[p]){
+        this.left[p]--;
+        if(this.left[p]<=0){
+          this.stowing[p]=false;
+          for(let pos=1;pos<=R;pos++){ if(a[pos]===p){ a[pos]=-1; break; } }
+          this.seated++;
+        }
+      }
+    }
+    if(this.seated===this.n){ this.done=true; this.finish=this.t; }
+  }
+}
+
+/* ---------- 渲染 ---------- */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let lanes=[], R=30, S=3, playing=false, timer=null;
+
+function setup(){
+  R=Math.max(5,Math.min(60,+document.getElementById('R').value||30));
+  S=Math.max(1,Math.min(10,+document.getElementById('S').value||3));
+  lanes=STRATS.map(st=>{ const L=new Lane(st.name, st.color); L.reset(st.gen(R), R, S); return L; });
+  draw(); document.getElementById('tick').textContent='0';
+}
+
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  const leftM=150, rightM=20, topM=14, cellW=Math.max(10, Math.min(22, (900-leftM)/R)), cellH=30, laneGap=14;
+  const W=leftM + R*cellW + rightM;
+  const H=topM*2 + lanes.length*(cellH+laneGap);
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.maxWidth=W+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  // 门（机头）标记
+  lanes.forEach((L,li)=>{
+    const y=topM + li*(cellH+laneGap);
+    // 名称
+    ctx.fillStyle='#cddcec'; ctx.font='13px "Microsoft YaHei",sans-serif'; ctx.textBaseline='middle';
+    ctx.fillText(L.name, 8, y+cellH/2);
+    // 用时
+    if(L.done){ ctx.fillStyle='#7fd1a3'; ctx.font='12px monospace'; ctx.fillText('✓ T='+L.finish, 8, y+cellH+cellH/2-4); }
+    // 过道格
+    for(let c=1;c<=R;c++){
+      const x=leftM+(c-1)*cellW;
+      ctx.fillStyle='#16283e'; ctx.strokeStyle='#27405f';
+      ctx.fillRect(x, y, cellW-1, cellH); ctx.strokeRect(x+.5, y+.5, cellW-2, cellH-1);
+      const p=L.aisle[c];
+      if(p!==-1){
+        const cx=x+(cellW-1)/2, cy=y+cellH/2, rad=Math.min(cellW,cellH)/2-3;
+        ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2);
+        ctx.fillStyle = L.stowing[p] ? '#d94b4b' : '#2f7ed8';
+        ctx.fill();
+      }
+    }
+  });
+}
+
+function tickAll(){
+  let allDone=true;
+  lanes.forEach(L=>{ if(!L.done){ L.step(); } if(!L.done) allDone=false; });
+  document.getElementById('tick').textContent = lanes.length? Math.max(...lanes.map(l=>l.t)) : 0;
+  draw();
+  if(allDone){ playing=false; clearInterval(timer); timer=null; document.getElementById('play').textContent='▶ 播放'; }
+}
+
+function play(){
+  if(timer) return;
+  playing=true; document.getElementById('play').textContent='⏸ 暂停';
+  const ms=Math.max(8, 220 - 7*(+document.getElementById('speed').value));
+  timer=setInterval(tickAll, ms);
+}
+function pause(){ playing=false; if(timer){ clearInterval(timer); timer=null; } document.getElementById('play').textContent='▶ 播放'; }
+
+document.getElementById('play').onclick=()=>{ playing?pause():play(); };
+document.getElementById('step').onclick=()=>{ pause(); tickAll(); };
+document.getElementById('reset').onclick=()=>{ pause(); setup(); };
+document.getElementById('R').onchange=()=>{ pause(); setup(); };
+document.getElementById('S').onchange=()=>{ pause(); setup(); };
+
+setup();
+</script>
+</body>
+</html>
