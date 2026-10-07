@@ -32,7 +32,8 @@ Adjust rows / stow time / repeats, run the simulation, and export the results as
 ```
 boarding-order-simulation/
 ├── index.html                 # Interactive web simulation
-├── src/board_sim.py           # Python version of the simulation
+├── src/board_sim.py           # Simulation (tick-by-tick, in Python)
+├── src/lpp_model.py           # Theory: longest-path / max-plus recurrence
 ├── data/results.csv           # Simulation results (tidy table)
 ├── data/results.xlsx          # Same results + charts
 ├── docs/Research_Report_Boarding_Optimization.pdf   # Full report
@@ -51,8 +52,27 @@ boarding-order-simulation/
 
 ```bash
 pip install matplotlib
-python src/board_sim.py
+python src/board_sim.py     # the simulation
+python src/lpp_model.py     # the theory + self-check vs the simulation (no matplotlib needed)
 ```
+
+## Theory: longest-path / max-plus model
+
+`src/lpp_model.py` computes the same boarding time **without** simulating every tick, via a dynamic-programming recurrence. For a boarding order `r[i]` (target row of the i-th passenger), let `P[i][c]` be the tick passenger `i` reaches row `c`. Then
+
+```
+P[i][c] = max( P[i][c-1] + 1 , B[i][c] )
+B[i][c] = P[j][c] + 1 + S   if r[j] == c   (person ahead stows at row c)
+          P[j][c+1]         if r[j] >  c   (person ahead only passes through)
+```
+
+where `j` is the last passenger before `i` that reaches row `c`, and `S` is the stow time. Every `P[i][c]` is a max of two terms, so the total
+
+```
+T = max_i ( P[i][r[i]] + S - 1  (+1 if r[i] >= 2) )
+```
+
+is the length of the **longest chain of waits** — a longest-path (last-passage percolation) value. The model reproduces the simulation **bit-for-bit** (verified over tens of thousands of cases), which validates the theory and explains *why* strategies differ: **clustering passengers of the same row piles up `+S` weights on a single cell and lengthens the critical path.**
 
 ## Report
 
