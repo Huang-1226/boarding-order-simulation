@@ -66,7 +66,7 @@
   <canvas id="cv"></canvas>
 
   <div class="panel">
-    <h2 class="sec">平均用时统计（<span id="replbl">20</span> 次取平均 · 交错↓为确定性，单次即准）</h2>
+    <h2 class="sec">平均用时统计（<span id="replbl">20</span> 次取平均 · 交错倒序为确定性，单次即准）</h2>
     <table>
       <thead><tr><th style="text-align:left">策略</th><th>平均时间 (tick)</th><th>相对随机</th><th>平均并行度</th><th>被堵次数</th></tr></thead>
       <tbody id="tbody"></tbody>
@@ -91,7 +91,7 @@ const STRATS = [
   {name:'随机 Random',   gen:(R)=>ordRandom(R,K),           color:'#d94b4b'},
   {name:'从后往前 Back', gen:(R)=>ordBack(R,K),             color:'#e0a52e'},
   {name:'分 5 区 Zones', gen:(R)=>ordZones(R,K,5),          color:'#b07fe0'},
-  {name:'交错↓ Interleaved', gen:(R)=>ordInterleaveDesc(R,K,6), color:'#7fd1a3'}
+  {name:'交错倒序 Interleaved', gen:(R)=>ordInterleaveDesc(R,K,6), color:'#7fd1a3'}
 ];
 
 /* ================= 统计用仿真（返回用时/并行度/堵塞） ================= */
