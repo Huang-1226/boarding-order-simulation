@@ -1,6 +1,6 @@
 # Boarding Order Simulation
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23186760.svg)](https://doi.org/10.5281/zenodo.23186760)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23186759.svg)](https://doi.org/10.5281/zenodo.23186759)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://huang-1226.github.io/boarding-order-simulation/)
 
 A computer simulation comparing four aircraft boarding strategies — **random**, **back-to-front**, **zoning** and a **strided-descending** order — together with an exact longest-path (max-plus) theory that explains them.
