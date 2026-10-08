@@ -49,6 +49,7 @@
       <label>排数 R <input type="number" id="R" value="30" min="5" max="50"></label>
       <label>放行李 S <input type="number" id="S" value="3" min="1" max="10"></label>
       <label>统计次数 <input type="number" id="REP" value="20" min="1" max="200"></label>
+      <label>交错间隔 <input type="number" id="STRIDE" value="6" min="2" max="20"></label>
       <label>速度 <input type="range" id="speed" min="1" max="30" value="12"></label>
       <button id="play">▶ 播放</button>
       <button class="ghost" id="step">单步</button>
@@ -91,7 +92,7 @@ const STRATS = [
   {name:'随机 Random',   gen:(R)=>ordRandom(R,K),           color:'#d94b4b'},
   {name:'从后往前 Back', gen:(R)=>ordBack(R,K),             color:'#e0a52e'},
   {name:'分 5 区 Zones', gen:(R)=>ordZones(R,K,5),          color:'#b07fe0'},
-  {name:'交错倒序 Interleaved', gen:(R)=>ordInterleaveDesc(R,K,6), color:'#7fd1a3'}
+  {name:'交错倒序 Interleaved', gen:(R)=>ordInterleaveDesc(R,K,STRIDE), color:'#7fd1a3'}
 ];
 
 /* ================= 统计用仿真（返回用时/并行度/堵塞） ================= */
@@ -135,12 +136,13 @@ class Lane {
 
 /* ================= 状态 ================= */
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
-let lanes=[], R=30, S=3, REP=20, timer=null;
+let lanes=[], R=30, S=3, REP=20, STRIDE=6, timer=null;
 
 function readParams(){
   R=Math.max(5,Math.min(50,+document.getElementById('R').value||30));
   S=Math.max(1,Math.min(10,+document.getElementById('S').value||3));
   REP=Math.max(1,Math.min(200,+document.getElementById('REP').value||20));
+  STRIDE=Math.max(2,Math.min(20,+document.getElementById('STRIDE').value||6));
 }
 
 function setup(){
@@ -224,6 +226,7 @@ document.getElementById('reset').onclick=()=>{ pause(); setup(); };
 document.getElementById('R').onchange=()=>{ pause(); setup(); };
 document.getElementById('S').onchange=()=>{ pause(); setup(); };
 document.getElementById('REP').onchange=()=>{ pause(); setup(); };
+document.getElementById('STRIDE').onchange=()=>{ pause(); setup(); };
 document.getElementById('csv').onclick=()=>{
   if(!lastRows){ return; }
   let csv='strategy,R,stow,repeats,avg_time,rel_random,avg_concurrent,total_blocked\n';
