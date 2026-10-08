@@ -3,30 +3,31 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23186760.svg)](https://doi.org/10.5281/zenodo.23186760)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://huang-1226.github.io/boarding-order-simulation/)
 
-A computer simulation comparing three aircraft boarding strategies — **random**, **back-to-front**, and **zoning** — and how their efficiency changes with stow time and cabin size.
+A computer simulation comparing four aircraft boarding strategies — **random**, **back-to-front**, **zoning** and a **strided-descending** order — together with an exact longest-path (max-plus) theory that explains them.
 
 > Built as an independent research project (aviation operations / supply chain / mathematical modeling).
 
 ## Key Finding
 
-Contrary to intuition, **random boarding is the fastest** and **back-to-front is the slowest**, and the gap widens as stow time and the number of rows increase.
+Contrary to intuition, **back-to-front is the slowest** and **random already beats it** — and a **strided-descending** order (rows grouped by residue mod 6, each group boarded from the back) is **faster still**. The gaps widen as stow time and cabin size increase.
 
 | Strategy | Boarding time (ticks) | Relative to random |
 |---|---|---|
-| Random | 331.9 | 1.00 |
-| Zones (5) | 402.6 | 1.21 |
+| Strided descending | 286.0 | 0.86 |
+| Random | 331.1 | 1.00 |
+| Zones (5) | 400.8 | 1.21 |
 | Back-to-front | 627.0 | 1.89 |
 
-*(R = 30 rows, STOW = 3 ticks, averaged over 20 runs)*
+*(R = 30 rows, 6 seats per row, S = 3 ticks; random/zoning averaged over 100 runs; strided-descending and back-to-front are deterministic)*
 
-**Why?** Random boarding spreads passengers across rows so many rows stow luggage **in parallel**; back-to-front makes passengers of the same row stow **sequentially**, under-using the aisle. The model measures this directly: random shows the highest parallelism (≈1.09 passengers stowing at once) and the fewest blocking events (≈950), while back-to-front shows only ≈0.57 parallelism and ≈6,525 blocking events — i.e., the mechanism behind the time gap, not just the gap itself.
+**Why?** Random spreads passengers across rows so many rows stow luggage **in parallel**; back-to-front makes the six passengers of a row stow **one after another**, under-using the aisle. The simulator measures this directly via **parallelism** (average passengers stowing at once: **1.26** strided-descending, 1.09 random, 0.90 zoning, **0.57** back-to-front). An exact **longest-path (max-plus) model** reproduces every boarding time bit-for-bit and shows that boarding so that passengers stop *before* the previous stower keeps the critical path short.
 
 ## Live Demo
 
 **Online:** https://huang-1226.github.io/boarding-order-simulation/
 
 Or open [`index.html`](index.html) in any browser — no installation, no internet required.
-It shows an animated top-down cabin (four strategies side by side; passengers walk, stow, and sit down) together with an averaged statistics table; adjust rows / stow time / repeats and export the results as CSV.
+It shows an animated top-down cabin (four strategies side by side; passengers walk, stow, and sit down) together with an averaged statistics table. Adjust **rows (R)**, **stow time (S)**, **repeats**, and the **interleaved stride (k)** of the strided-descending strategy, then export the results as CSV.
 
 *(You can enable GitHub Pages in the repository settings to host it as a website.)*
 
@@ -39,7 +40,8 @@ boarding-order-simulation/
 ├── src/lpp_model.py           # Theory: longest-path / max-plus recurrence
 ├── data/results.csv           # Simulation results (tidy table)
 ├── data/results.xlsx          # Same results + charts
-├── docs/Research_Report_Boarding_Optimization.pdf   # Full report
+├── docs/Research_Report_Boarding_Optimization.pdf    # Full report (EN)
+├── docs/Research_Report_Boarding_Optimization_ZH.pdf # Full report (中文)
 └── LICENSE
 ```
 
@@ -75,7 +77,7 @@ where `j` is the last passenger before `i` that reaches row `c`, and `S` is the 
 T = max_i ( P[i][r[i]] + S - 1  (+1 if r[i] >= 2) )
 ```
 
-is the length of the **longest chain of waits** — a longest-path (last-passage percolation) value. The model reproduces the simulation **bit-for-bit** (verified over tens of thousands of cases), which validates the theory and explains *why* strategies differ: **clustering passengers of the same row piles up `+S` weights on a single cell and lengthens the critical path.**
+is the length of the **longest chain of waits** — a longest-path (last-passage percolation) value. The model reproduces the simulation **bit-for-bit** (verified over tens of thousands of cases), which validates the theory and explains *why* strategies differ: **the boarding time is the longest chain of waits, and a good order spreads stowing across many rows while letting each passenger stop before the previous stower, keeping the critical path short.**
 
 ## Report
 
