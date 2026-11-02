@@ -31,6 +31,8 @@ It shows an animated top-down cabin (four strategies side by side; passengers wa
 
 *(You can enable GitHub Pages in the repository settings to host it as a website.)*
 
+LaTeX editions: [`docs/latex/Boarding_Report_LaTeX.pdf`](docs/latex/Boarding_Report_LaTeX.pdf) (EN) and [`docs/latex/Boarding_Report_ZH_LaTeX.pdf`](docs/latex/Boarding_Report_ZH_LaTeX.pdf) (中文).
+
 ## Repository Structure
 
 ```
@@ -42,6 +44,7 @@ boarding-order-simulation/
 ├── data/results.xlsx          # Same results + charts
 ├── docs/Research_Report_Boarding_Optimization.pdf    # Full report (EN)
 ├── docs/Research_Report_Boarding_Optimization_ZH.pdf # Full report (中文)
+├── docs/latex/                # LaTeX editions (EN + 中文) and figures
 └── LICENSE
 ```
 
